@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --mt-sand-50: #fdf9f2;
+  --mt-sand-100: #f8efdc;
+  --mt-sand-200: #efe0bf;
+  --mt-ochre-400: #d99543;
+  --mt-ochre-500: #c87a1f;
+  --mt-ochre-600: #a35f13;
+  --mt-terracotta-500: #b8451f;
+  --mt-terracotta-600: #8e320f;
+  --mt-teal-500: #0f7080;
+  --mt-teal-700: #0a4e5a;
+  --mt-teal-900: #052b34;
+  --mt-ink: #1a1410;
+
+  --background: var(--mt-sand-50);
+  --foreground: var(--mt-ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+  --color-sand-50: var(--mt-sand-50);
+  --color-sand-100: var(--mt-sand-100);
+  --color-sand-200: var(--mt-sand-200);
+  --color-ochre-400: var(--mt-ochre-400);
+  --color-ochre-500: var(--mt-ochre-500);
+  --color-ochre-600: var(--mt-ochre-600);
+  --color-terracotta-500: var(--mt-terracotta-500);
+  --color-terracotta-600: var(--mt-terracotta-600);
+  --color-teal-500: var(--mt-teal-500);
+  --color-teal-700: var(--mt-teal-700);
+  --color-teal-900: var(--mt-teal-900);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+/* Subtle paper/grain for landing hero */
+.mt-hero-grain {
+  background-image:
+    radial-gradient(ellipse at top left, rgba(200, 122, 31, 0.18), transparent 55%),
+    radial-gradient(ellipse at bottom right, rgba(15, 112, 128, 0.18), transparent 55%),
+    linear-gradient(180deg, #fdf9f2 0%, #f8efdc 100%);
 }
