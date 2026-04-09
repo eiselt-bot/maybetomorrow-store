@@ -99,15 +99,13 @@ export function CartPage({
     persist(next);
   }
 
-  // Compute totals
-  let subtotal = 0;
+  // Compute totals — use reduce to avoid let-reassign during render
   const hydrated = items
     .map((it) => {
       const p = products[it.productId];
       if (!p) return null;
       const net = Math.round(p.priceKes * (1 - p.discountPct / 100));
       const line = net * it.qty;
-      subtotal += line;
       return { item: it, product: p, net, line };
     })
     .filter(Boolean) as Array<{
@@ -116,6 +114,7 @@ export function CartPage({
     net: number;
     line: number;
   }>;
+  const subtotal = hydrated.reduce((sum, r) => sum + r.line, 0);
 
   const deliveryFee = deliveryFees[zone]?.feeKes ?? 0;
   const marginKes = Math.round(subtotal * (marginPct / 100));

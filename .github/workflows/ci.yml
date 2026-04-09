@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  # Fake secrets so next build + tests don't complain about missing env
+  DATABASE_URL: 'postgres://dummy:dummy@localhost:5432/dummy'
+  NEXTAUTH_URL: 'http://localhost:3003'
+  AUTH_URL: 'http://localhost:3003'
+  AUTH_TRUST_HOST: 'true'
+  AUTH_SECRET: 'ci-secret-for-build-only-not-used-at-runtime'
+  NEXTAUTH_SECRET: 'ci-secret-for-build-only-not-used-at-runtime'
+  ANTHROPIC_API_KEY: 'sk-ant-ci-dummy'
+  APEX_DOMAIN: 'maybetomorrow.store'
+  PLATFORM_NAME: 'MaybeTomorrow.store'
+  PLATFORM_MARGIN_PCT: '10'
+  UPLOAD_DIR: '/tmp/mt-uploads-ci'
+  PUBLIC_UPLOAD_URL: '/uploads'
+
+jobs:
+  quality:
+    name: Typecheck + Lint + Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests (vitest)
+        run: npm test -- --run
+
+  build:
+    name: Next.js build
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create dummy upload dir
+        run: mkdir -p ${{ env.UPLOAD_DIR }}
+
+      - name: Build
+        run: npm run build

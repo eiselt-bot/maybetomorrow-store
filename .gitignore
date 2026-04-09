@@ -60,3 +60,9 @@ yarn-error.log*
 .idea/
 .vscode/
 *.swp
+
+# Phase 2 — test artifacts
+playwright-report/
+test-results/
+.vitest-cache/
+coverage/

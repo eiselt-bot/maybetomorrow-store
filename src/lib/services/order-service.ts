@@ -99,7 +99,7 @@ export type CreatedOrder = {
  * Compute line economics for a single product line.
  * Applies discount first, then rounds to integer KES.
  */
-function computeLine(product: Product, qty: number) {
+export function computeLine(product: Product, qty: number) {
   const grossUnit = product.priceKes;
   const netUnit = Math.round(grossUnit * (1 - product.discountPct / 100));
   const lineTotal = netUnit * qty;
@@ -107,7 +107,7 @@ function computeLine(product: Product, qty: number) {
 }
 
 /** Generate a short, human-readable order number. */
-function generateOrderNumber(): string {
+export function generateOrderNumber(): string {
   const now = new Date();
   const yyyy = now.getUTCFullYear();
   const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
