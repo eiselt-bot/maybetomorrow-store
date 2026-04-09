@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import {
   updateLayoutVariantForm,
   updateDesignTokensForm,
+  generateMockupsForm,
 } from '@/app/actions/shop-admin';
 import type { LayoutVariant } from '@/lib/db/schema';
 
@@ -138,6 +139,7 @@ export default async function TemplatePage({
 
   const layoutAction = updateLayoutVariantForm.bind(null, shop.id);
   const tokensAction = updateDesignTokensForm.bind(null, shop.id);
+  const genAction = generateMockupsForm.bind(null, shop.id);
 
   return (
     <div className="space-y-8 pb-16">
@@ -157,6 +159,30 @@ export default async function TemplatePage({
           Changes apply instantly to the public shop.
         </p>
       </div>
+
+      {/* Quick AI shortcut */}
+      <div className="rounded-2xl border-2 border-dashed border-ochre-300 bg-gradient-to-br from-ochre-50 to-sand-50 p-5 flex items-center gap-4">
+        <div className="flex-1">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-ochre-600">
+            Let the AI do it
+          </p>
+          <p className="font-display text-xl text-teal-900 mt-1">
+            Generate 3 mockups based on this shop\'s brand values
+          </p>
+          <p className="text-xs text-teal-900/60 mt-1">
+            Claude will interpret the ranked brand values and propose 3 different layouts + color palettes to choose from.
+          </p>
+        </div>
+        <form action={genAction}>
+          <button
+            type="submit"
+            className="whitespace-nowrap inline-flex items-center rounded-lg bg-ochre-500 px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-ochre-600 transition"
+          >
+            ✨ Generate 3 mockups
+          </button>
+        </form>
+      </div>
+
 
       {/* Layout picker */}
       <section className="rounded-2xl border border-teal-900/10 bg-white shadow-sm">

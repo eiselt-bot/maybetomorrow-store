@@ -256,6 +256,13 @@ export default async function AdminShopDetailPage({
             >
               Full BV editor →
             </Link>
+        <Link
+          href={`/admin/shops/${shop.id}/mockups`}
+          className="inline-flex items-center gap-2 rounded-lg border border-teal-900/15 bg-white px-4 py-2 text-sm font-semibold text-teal-900 hover:border-ochre-500 hover:text-ochre-600 transition"
+        >
+          <span>✨</span>
+          <span>Mockups</span>
+        </Link>
             <Link
               href={`/admin/shops/${shop.id}/template`}
               className="px-3 py-1.5 rounded-full text-teal-900/70 hover:text-ochre-600 hover:bg-ochre-400/10 transition"

@@ -329,6 +329,44 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   }),
 }));
 
+
+// ============ SHOP MOCKUPS (AI-generated design variants) ============
+export const shopMockups = pgTable(
+  'shop_mockups',
+  {
+    id: serial('id').primaryKey(),
+    shopId: integer('shop_id')
+      .notNull()
+      .references(() => shops.id, { onDelete: 'cascade' }),
+    variantIndex: integer('variant_index').notNull(),
+    name: text('name').notNull(),
+    rationale: text('rationale').notNull(),
+    layoutVariant: layoutVariantEnum('layout_variant').notNull(),
+    designTokens: jsonb('design_tokens')
+      .$type<{
+        primary: string;
+        secondary: string;
+        accent: string;
+        font_display: string;
+        font_body: string;
+        radius: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+        hero_treatment: 'warm-overlay' | 'cool-overlay' | 'polaroid' | 'clean' | 'pattern-bg';
+      }>()
+      .notNull(),
+    copyTone: text('copy_tone').notNull(),
+    brandValuesSnapshot: jsonb('brand_values_snapshot').$type<string[]>().notNull(),
+    status: text('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    shopIdx: index('shop_mockups_shop_idx').on(t.shopId, t.createdAt),
+    statusIdx: index('shop_mockups_status_idx').on(t.shopId, t.status),
+  }),
+);
+
+export type ShopMockup = typeof shopMockups.$inferSelect;
+export type NewShopMockup = typeof shopMockups.$inferInsert;
+
 // ============ TYPE EXPORTS ============
 
 export type User = typeof users.$inferSelect;

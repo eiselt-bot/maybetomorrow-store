@@ -11,7 +11,7 @@
  */
 
 import { db, schema } from '@/lib/db/client';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -521,4 +521,141 @@ export async function updateProductDiscountForm(
   const pct = Number(formData.get('discountPct') || 0);
   await updateProductDiscount(productId, pct);
   revalidatePath(`/admin/shops/${shopId}/products`);
+}
+
+
+// ============================================================================
+// Mockup generation + application (CR: Shop Design Management)
+// ============================================================================
+
+import { generateMockups } from '@/lib/services/mockup-generator';
+
+/**
+ * Form-action wrapper: called from brand-values / template / mockups pages.
+ * Generates 3 fresh mockups via Claude, stores them as 'pending', and
+ * redirects the admin to the mockups review page.
+ *
+ * Previous pending mockups for this shop are marked 'rejected' first.
+ */
+export async function generateMockupsForm(
+  shopId: number,
+  _formData: FormData,
+): Promise<void> {
+  await requireAdmin();
+
+  const [shop] = await db
+    .select()
+    .from(schema.shops)
+    .where(eq(schema.shops.id, shopId))
+    .limit(1);
+  if (!shop) {
+    redirect(`/admin/shops/${shopId}/mockups?error=Shop+not+found`);
+  }
+
+  const brandValues = (shop.brandValues ?? []).filter(
+    (v) => typeof v === 'string' && v.trim().length > 0,
+  );
+  if (brandValues.length === 0) {
+    redirect(
+      `/admin/shops/${shopId}/mockups?error=${encodeURIComponent(
+        'Please set at least one brand value before generating mockups.',
+      )}`,
+    );
+  }
+
+  let variants;
+  try {
+    variants = await generateMockups(shop, brandValues);
+  } catch (e) {
+    const msg = (e as Error).message || 'Generation failed';
+    console.error('[generateMockupsForm]', msg);
+    redirect(
+      `/admin/shops/${shopId}/mockups?error=${encodeURIComponent(msg)}`,
+    );
+  }
+
+  // Supersede any still-pending mockups from a previous generation
+  await db
+    .update(schema.shopMockups)
+    .set({ status: 'rejected' })
+    .where(
+      and(
+        eq(schema.shopMockups.shopId, shopId),
+        eq(schema.shopMockups.status, 'pending'),
+      ),
+    );
+
+  await db.insert(schema.shopMockups).values(
+    variants.map((v, i) => ({
+      shopId,
+      variantIndex: i + 1,
+      name: v.name,
+      rationale: v.rationale,
+      layoutVariant: v.layout_variant,
+      designTokens: v.design_tokens,
+      copyTone: v.copy_tone,
+      brandValuesSnapshot: brandValues,
+    })),
+  );
+
+  revalidatePath(`/admin/shops/${shopId}`);
+  revalidatePath(`/admin/shops/${shopId}/mockups`);
+  redirect(`/admin/shops/${shopId}/mockups`);
+}
+
+/**
+ * Form-action wrapper: applies a specific mockup's design to the shop.
+ * Marks the chosen mockup 'selected' and any siblings 'rejected'.
+ */
+export async function applyMockupForm(
+  shopId: number,
+  mockupId: number,
+  _formData: FormData,
+): Promise<void> {
+  await requireAdmin();
+
+  const [mockup] = await db
+    .select()
+    .from(schema.shopMockups)
+    .where(
+      and(
+        eq(schema.shopMockups.id, mockupId),
+        eq(schema.shopMockups.shopId, shopId),
+      ),
+    )
+    .limit(1);
+  if (!mockup) {
+    redirect(`/admin/shops/${shopId}/mockups?error=Mockup+not+found`);
+  }
+
+  await db
+    .update(schema.shops)
+    .set({
+      layoutVariant: mockup.layoutVariant,
+      designTokens: mockup.designTokens,
+      copyTone: mockup.copyTone,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.shops.id, shopId));
+
+  // Mark siblings rejected, chosen selected
+  await db
+    .update(schema.shopMockups)
+    .set({ status: 'rejected' })
+    .where(
+      and(
+        eq(schema.shopMockups.shopId, shopId),
+        eq(schema.shopMockups.status, 'pending'),
+      ),
+    );
+  await db
+    .update(schema.shopMockups)
+    .set({ status: 'selected' })
+    .where(eq(schema.shopMockups.id, mockupId));
+
+  revalidatePath(`/admin/shops/${shopId}`);
+  revalidatePath(`/admin/shops/${shopId}/mockups`);
+  revalidatePath(`/admin/shops/${shopId}/template`);
+  revalidatePath(`/shop/${mockup.shopId}`);
+  redirect(`/admin/shops/${shopId}?applied=${mockupId}`);
 }

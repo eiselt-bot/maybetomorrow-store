@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db, schema } from '@/lib/db/client';
 import { eq } from 'drizzle-orm';
-import { updateBrandValuesForm } from '@/app/actions/shop-admin';
+import { updateBrandValuesForm, generateMockupsForm } from '@/app/actions/shop-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +39,7 @@ export default async function BrandValuesPage({
   const bvPadded = Array.from({ length: 5 }, (_, i) => values[i] ?? '');
 
   const action = updateBrandValuesForm.bind(null, shop.id);
+  const genAction = generateMockupsForm.bind(null, shop.id);
 
   return (
     <div className="space-y-8 pb-16">
@@ -151,6 +152,46 @@ export default async function BrandValuesPage({
           </div>
         </div>
       </form>
+    
+
+      {/* Generate mockups card */}
+      <div className="rounded-2xl border-2 border-dashed border-ochre-300 bg-gradient-to-br from-ochre-50 to-sand-50 p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex-1">
+            <p className="text-[10px] font-semibold tracking-widest uppercase text-ochre-600 mb-2">
+              AI Design
+            </p>
+            <h2 className="font-display text-2xl text-teal-900 mb-2">
+              Generate 3 Mockups based on new setting
+            </h2>
+            <p className="text-sm text-teal-900/70 leading-snug max-w-xl">
+              Once you\'ve saved the brand values above, click this to have
+              Claude produce three distinct design interpretations — each
+              picks a layout variant, color palette, fonts, and copy tone
+              that lean into your ranked values differently. You\'ll land
+              on the mockups page where you can preview and apply the one
+              you like.
+            </p>
+          </div>
+          <form action={genAction}>
+            <button
+              type="submit"
+              className="whitespace-nowrap inline-flex items-center rounded-lg bg-ochre-500 px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-ochre-600 transition"
+            >
+              ✨ Generate 3 mockups
+            </button>
+          </form>
+        </div>
+        <div className="mt-4 pt-4 border-t border-ochre-200/50 flex items-center gap-2 text-xs text-teal-900/60">
+          <span>Already generated?</span>
+          <Link
+            href={`/admin/shops/${shop.id}/mockups`}
+            className="font-semibold text-ochre-600 hover:text-ochre-700"
+          >
+            View pending mockups →
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
