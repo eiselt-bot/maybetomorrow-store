@@ -503,6 +503,12 @@ export async function deleteProductForm(
   productId: number,
 ) {
   await deleteProduct(productId);
+  await logAudit({
+    action: 'product.delete',
+    entityType: 'product',
+    entityId: productId,
+    meta: { shopId },
+  });
   revalidatePath(`/admin/shops/${shopId}/products`);
 }
 
@@ -531,6 +537,7 @@ export async function updateProductDiscountForm(
 // ============================================================================
 
 import { generateMockups } from '@/lib/services/mockup-generator';
+import { logAudit } from '@/lib/audit';
 
 /**
  * Form-action wrapper: called from brand-values / template / mockups pages.
@@ -655,6 +662,13 @@ export async function applyMockupForm(
     .set({ status: 'selected' })
     .where(eq(schema.shopMockups.id, mockupId));
 
+  await logAudit({
+    action: 'shop.applyMockup',
+    entityType: 'shop',
+    entityId: shopId,
+    meta: { mockupId, layoutVariant: mockup.layoutVariant, name: mockup.name },
+  });
+
   revalidatePath(`/admin/shops/${shopId}`);
   revalidatePath(`/admin/shops/${shopId}/mockups`);
   revalidatePath(`/admin/shops/${shopId}/template`);
@@ -757,6 +771,13 @@ export async function createShopForm(formData: FormData): Promise<void> {
     })
     .returning({ id: schema.shops.id });
 
+  await logAudit({
+    action: 'shop.create',
+    entityType: 'shop',
+    entityId: row.id,
+    meta: { slug: data.slug, title: data.title, layoutVariant: data.layoutVariant },
+  });
+
   revalidatePath('/admin/shops');
   redirect(`/admin/shops/${row.id}`);
 }
@@ -839,6 +860,17 @@ export async function createPayoutsForShopForm(
   }
 
   await db.insert(schema.payouts).values(toInsert);
+
+  await logAudit({
+    action: 'payout.create',
+    entityType: 'shop',
+    entityId: shopId,
+    meta: {
+      payoutCount: toInsert.length,
+      totalNetKes: toInsert.reduce((sum, p) => sum + p.netKes, 0),
+      mpesaRef,
+    },
+  });
 
   revalidatePath('/admin/payouts');
   redirect(`/admin/payouts?paid=${toInsert.length}`);

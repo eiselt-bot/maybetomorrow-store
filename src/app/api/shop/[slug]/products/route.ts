@@ -11,12 +11,21 @@
 import { NextResponse } from 'next/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/lib/db/client';
+import { checkRateLimit, clientKey } from '@/lib/rate-limit';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
+
+  // Rate limit: 100 requests / minute / IP — enough for a customer
+  // bouncing through the cart, tight enough to stop enumeration.
+  const key = clientKey(request, `shop:${slug}:products`);
+  if (!checkRateLimit(key, 100, 60_000)) {
+    return NextResponse.json({ error: 'Rate limit' }, { status: 429 });
+  }
+
   const url = new URL(request.url);
   const idsParam = url.searchParams.get('ids') ?? '';
   const ids = idsParam

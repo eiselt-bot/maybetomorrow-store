@@ -179,6 +179,7 @@ import { auth } from '@/lib/auth';
 
 import { db, schema as dbSchema } from '@/lib/db/client';
 import { eq } from 'drizzle-orm';
+import { logAudit } from '@/lib/audit';
 
 const ORDER_STATUS_VALUES = ['new', 'confirmed', 'picked_up', 'delivered', 'cancelled', 'refunded'] as const;
 type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
@@ -211,6 +212,13 @@ export async function updateOrderStatusForm(
   if (!row) {
     redirect('/admin/orders?error=Order+not+found');
   }
+
+  await logAudit({
+    action: 'order.statusChange',
+    entityType: 'order',
+    entityId: orderId,
+    meta: { newStatus: status, orderNumber: row.orderNumber },
+  });
 
   revalidatePath('/admin/orders');
   revalidatePath(`/admin/orders/${encodeURIComponent(row.orderNumber)}`);

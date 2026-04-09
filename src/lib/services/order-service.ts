@@ -141,9 +141,10 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
 
   // Drizzle doesn't ship transactions on neon-http, but on node-postgres it works.
   // We do two inserts back-to-back; if the second fails, we delete the first.
-  const [orderRow] = await db
-    .insert(schema.orders)
-    .values({
+  const [orderRow] = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(schema.orders)
+      .values({
       orderNumber,
       customerName: input.customerName,
       customerPhone: input.customerPhone,
@@ -164,9 +165,8 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     })
     .returning({ id: schema.orders.id });
 
-  try {
-    await db.insert(schema.orderItems).values({
-      orderId: orderRow.id,
+    await tx.insert(schema.orderItems).values({
+      orderId: inserted.id,
       shopId: shop.id,
       productId: product.id,
       qty,
@@ -177,11 +177,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
       isCrossSell: false,
       variantSelection: input.variantSelection ?? null,
     });
-  } catch (e) {
-    // Compensate: drop the orphan order
-    await db.delete(schema.orders).where(eq(schema.orders.id, orderRow.id));
-    throw e;
-  }
+
+    return [inserted];
+  });
 
   return {
     orderId: orderRow.id,
@@ -327,9 +325,10 @@ export async function createOrderFromCart(
   const totalKes = productsSubtotalKes + deliveryFeeKes + totalMarginKes;
   const orderNumber = generateOrderNumber();
 
-  const [orderRow] = await db
-    .insert(schema.orders)
-    .values({
+  const [orderRow] = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(schema.orders)
+      .values({
       orderNumber,
       customerName: input.customerName,
       customerPhone: input.customerPhone,
@@ -350,14 +349,12 @@ export async function createOrderFromCart(
     })
     .returning({ id: schema.orders.id });
 
-  try {
-    await db.insert(schema.orderItems).values(
-      itemRows.map((r) => ({ ...r, orderId: orderRow.id })),
+    await tx.insert(schema.orderItems).values(
+      itemRows.map((r) => ({ ...r, orderId: inserted.id })),
     );
-  } catch (e) {
-    await db.delete(schema.orders).where(eq(schema.orders.id, orderRow.id));
-    throw e;
-  }
+
+    return [inserted];
+  });
 
   return {
     orderId: orderRow.id,

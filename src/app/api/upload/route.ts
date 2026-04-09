@@ -16,6 +16,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { extname } from 'node:path';
 import { auth } from '@/lib/auth';
+import { checkRateLimit, clientKey } from '@/lib/rate-limit';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/var/mt-store/uploads';
 const PUBLIC_UPLOAD_URL = process.env.PUBLIC_UPLOAD_URL || '/uploads';
@@ -46,6 +47,15 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit: max 20 uploads per 5 minutes per IP
+  const key = clientKey(request, 'upload');
+  if (!checkRateLimit(key, 20, 5 * 60_000)) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded — try again in a few minutes' },
+      { status: 429 },
+    );
   }
 
   let formData: FormData;
