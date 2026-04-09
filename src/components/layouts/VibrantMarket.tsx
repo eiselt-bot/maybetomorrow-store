@@ -74,7 +74,7 @@ export function VibrantMarket({ shop, products, tokens, rates, children }: ShopL
 
       {/* Main / children slot */}
       <main className="max-w-7xl mx-auto px-4 py-10">
-        {children ?? <VibrantHome shop={shop} products={products} rates={rates} />}
+        {children}
       </main>
 
       {/* Footer */}
@@ -88,7 +88,7 @@ export function VibrantMarket({ shop, products, tokens, rates, children }: ShopL
   );
 }
 
-function VibrantHome({
+export function VibrantHome({
   shop,
   products,
   rates,

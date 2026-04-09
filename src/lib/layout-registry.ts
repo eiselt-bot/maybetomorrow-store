@@ -2,15 +2,14 @@ import type { ComponentType } from 'react';
 import type { LayoutVariant } from '@/lib/db/schema';
 import type { ShopLayoutProps } from '@/components/layouts/types';
 
-import { EarthyArtisan } from '@/components/layouts/EarthyArtisan';
-import { VibrantMarket } from '@/components/layouts/VibrantMarket';
-import { OceanCalm } from '@/components/layouts/OceanCalm';
-import { HeritageStory } from '@/components/layouts/HeritageStory';
-import { BoldMaker } from '@/components/layouts/BoldMaker';
+import { EarthyArtisan, EarthyHome } from '@/components/layouts/EarthyArtisan';
+import { VibrantMarket, VibrantHome } from '@/components/layouts/VibrantMarket';
+import { OceanCalm, OceanHome } from '@/components/layouts/OceanCalm';
+import { HeritageStory, HeritageHome } from '@/components/layouts/HeritageStory';
+import { BoldMaker, BoldHome } from '@/components/layouts/BoldMaker';
 
-/**
- * Maps `layout_variant` enum strings from the DB to their React layout component.
- */
+type HomeProps = Pick<ShopLayoutProps, 'shop' | 'products' | 'rates'>;
+
 export const layoutRegistry: Record<LayoutVariant, ComponentType<ShopLayoutProps>> = {
   'earthy-artisan': EarthyArtisan,
   'vibrant-market': VibrantMarket,
@@ -19,10 +18,14 @@ export const layoutRegistry: Record<LayoutVariant, ComponentType<ShopLayoutProps
   'bold-maker': BoldMaker,
 };
 
-/**
- * Resolve a layout component by variant string, with a safe fallback.
- * Unknown/null variants fall back to EarthyArtisan.
- */
+const homeRegistry: Record<LayoutVariant, ComponentType<HomeProps>> = {
+  'earthy-artisan': EarthyHome,
+  'vibrant-market': VibrantHome,
+  'ocean-calm': OceanHome,
+  'heritage-story': HeritageHome,
+  'bold-maker': BoldHome,
+};
+
 export function resolveLayout(
   variant: LayoutVariant | null | undefined,
 ): ComponentType<ShopLayoutProps> {
@@ -30,4 +33,13 @@ export function resolveLayout(
     return layoutRegistry[variant];
   }
   return EarthyArtisan;
+}
+
+export function resolveHomeComponent(
+  variant: LayoutVariant | null | undefined,
+): ComponentType<HomeProps> {
+  if (variant && variant in homeRegistry) {
+    return homeRegistry[variant];
+  }
+  return EarthyHome;
 }

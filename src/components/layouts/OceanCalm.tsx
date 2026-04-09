@@ -75,7 +75,7 @@ export function OceanCalm({ shop, products, tokens, rates, children }: ShopLayou
 
       {/* Main / children slot */}
       <main className="max-w-5xl mx-auto px-6 pb-20">
-        {children ?? <OceanHome shop={shop} products={products} rates={rates} />}
+        {children}
       </main>
 
       {/* Footer */}
@@ -90,7 +90,7 @@ export function OceanCalm({ shop, products, tokens, rates, children }: ShopLayou
   );
 }
 
-function OceanHome({
+export function OceanHome({
   shop,
   products,
   rates,

@@ -76,7 +76,7 @@ export function HeritageStory({ shop, products, tokens, rates, children }: ShopL
 
       {/* Main */}
       <main>
-        {children ?? <HeritageHome shop={shop} products={products} rates={rates} />}
+        {children}
       </main>
 
       {/* Footer */}
@@ -103,7 +103,7 @@ export function HeritageStory({ shop, products, tokens, rates, children }: ShopL
   );
 }
 
-function HeritageHome({
+export function HeritageHome({
   shop,
   products,
   rates,

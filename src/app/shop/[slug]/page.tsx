@@ -1,23 +1,18 @@
 import { loadShop } from './_loaders';
+import { resolveHomeComponent } from '@/lib/layout-registry';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
 /**
- * Shop home page.
- *
- * The layout at `./layout.tsx` already renders the chosen shop-layout component
- * (EarthyArtisan / VibrantMarket / ...), and each of those layouts renders their
- * own "default home" block (Hero-ish + Top-5 grid + About teaser) when `children`
- * is null.
- *
- * So the home page simply ensures the shop exists (cached, deduped with the
- * layout's fetch) and returns `null`, letting the layout own the home content.
+ * Shop home page. Renders the variant-specific Home component (top-5 grid
+ * + about teaser). The surrounding chrome (header/hero/footer) is rendered
+ * by layout.tsx via the matching layout component.
  */
 export default async function ShopHomePage({ params }: PageProps) {
   const { slug } = await params;
-  // Triggers notFound() if the shop doesn't exist; dedupes with layout's call.
-  await loadShop(slug);
-  return null;
+  const { shop, products, rates } = await loadShop(slug);
+  const Home = resolveHomeComponent(shop.layoutVariant);
+  return <Home shop={shop} products={products} rates={rates} />;
 }

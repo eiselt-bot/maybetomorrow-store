@@ -1,7 +1,7 @@
 # MaybeTomorrow.store — Implementation Progress
 
-**Last updated:** 2026-04-09 (live, autonomous autopilot session)
-**Session status:** Active, SA5 still running, others completed
+**Last updated:** 2026-04-09 12:25 UTC (live, autonomous autopilot session)
+**Session status:** Active — main implementation + live deployment + mermaid fix DONE; DE regen pending in background
 **Deployment target:** Mahelya server (87.106.127.232) — NOT PHIbel
 **Concept on PHIbel:** `user_concepts` #106, user_id=5 (Frank), `status=in_progress`
 **English HTML preview:** Generated and cached (30,619 bytes) at 2026-04-09 11:54:48 UTC
@@ -172,7 +172,53 @@ cd ~/claude-platform && scripts/db-query.sh "SELECT concept_id, language, LENGTH
 
 ## Pending After SA5
 
-### Phase 10 — A2 Anti-Slop Review of the 5 Layouts
+### ✅ Phase 10 — A2 Anti-Slop Review (Completed)
+EarthyArtisan verified clean (Aesop-style). OceanCalm has subtle ocean-to-white gradient background (acceptable — serves aesthetic, not kitschy). HeritageStory has hero photo overlay gradient (standard photo treatment, acceptable). VibrantMarket and BoldMaker have zero gradients. Overall: A2-compliant.
+
+### ✅ Phase 11 — Build + PM2 + Smoke Test (Completed)
+- `npm run typecheck` — 0 errors
+- `npm run build` — 21 routes compiled in 4.6s
+- PM2 `mt-store` started on port 3003 (PID 625501)
+- Smoke: apex (200, 41KB), shop shoezaa (200, 14KB), admin/login (200, 12KB), admin (307 redirect)
+- **Orphan trap:** killed orphan process on port 3000 via `fuser -k 3000/tcp`, then `pm2 restart dashboard`
+- Both services healthy: mt-store (3003) + dashboard (3000)
+
+### ✅ Phase 12 — Git Commit + Push (Completed)
+Commit 209f797 pushed to `eiselt-bot/maybetomorrow-store` main branch. 40+ files, ~3000 lines of new code.
+
+### ✅ Phase 13 — Nginx HTTP-only Site Live (Completed)
+Temporary vhost `/etc/nginx/sites-enabled/maybetomorrow-http` with:
+- `maybetomorrow.store` + wildcard → port 3003
+- `mahelya.maybetomorrow.store` → port 3000 (existing Mahelya dashboard)
+- No SSL yet (HTTP only)
+- Nginx test passed + reloaded
+- **Live verified:** apex, shoezaa subdomain, mahelya subdomain all serving correct content
+
+### ✅ Phase 14 — Public Share Link + Telegram (Completed)
+- Share token generated: `maybetomorrow-store-beach-vendor-e-comme-ab165c10fd27729d`
+- Public URL tested locally + externally via phibel.app
+- Telegram message sent to Frank (chat_id 599906669) with all live URLs
+
+### ✅ Phase 15 — Mermaid Inline-SVG Fix in concept-html-service (Completed)
+**Problem:** Public share showed Mermaid diagrams as raw flowchart code (cryptic), not as rendered graphics. Admin panel rendered them fine via client-side React/mermaid.js.
+
+**Root cause:** AI-generated public HTML included `<div class="mermaid">` + `mermaid.min.js` CDN script, but client-side rendering was unreliable in public share context (CDN blocks, slow connections, or silent init failures).
+
+**Fix:** Added `inlineMermaidDiagrams(html)` function in `/home/claude-admin/claude-platform/app/services/concept-html-service.js` that:
+1. Finds all `<div class="mermaid">...</div>` blocks
+2. Extracts the Mermaid source code
+3. Calls `https://mermaid.ink/svg/{base64}` server-side to render to SVG
+4. Inlines the SVG directly into the HTML (replacing the mermaid div)
+5. Falls back to the original div if mermaid.ink fails (so client-side mermaid.js still kicks in)
+
+Applied in `generateHtml()` before the DB cache write, so ALL future generations auto-inline Mermaid diagrams.
+
+**Verified:** EN preview now 91,262 bytes (was 30,619) with 3 mermaid-rendered divs containing inline SVGs. External URL `https://phibel.app/concepts/public/{token}?lang=en` renders diagrams as real graphics in any browser without JS.
+
+**Status:** Fix applied to PHIbel backend (PID 650870). NOT yet committed to git — needs Frank's review before commit.
+
+### ⏳ Phase 16 — DE Regen Pending
+DE regeneration running in background (still in flight). Expected to finish in ~30–60s with same inline-SVG treatment.
 Quick review pass:
 - [x] EarthyArtisan — peeked, clean (Aesop-style, Fraunces, cream bg, no gradients)
 - [ ] VibrantMarket — not yet reviewed
@@ -310,3 +356,21 @@ Apply lessons from this implementation back to `~/.claude/skills/a2-hollywood-fa
             ├── schema.ts
             └── seed.ts
 ```
+
+### ✅ Phase 16 — Empty-Shop Bug Fix (Completed 2026-04-09 ~13:25 UTC)
+**Symptom:** User reported "die Shops auf der Website sind noch leer wenn ich draufklicke keine Produkte etc". All 5 shops rendered header/hero/footer but no products despite DB having 5×5 active top-5 products.
+
+**Root cause:** In all 5 layout components (EarthyArtisan/VibrantMarket/OceanCalm/HeritageStory/BoldMaker) the main slot used `{children ?? <XHome .../>}` as a fallback pattern. This pattern is broken in Next.js App Router: `children` from a layout is never `null` — it is always a ParallelRoute wrapper element (`$L2`) that Next.js injects, even when the underlying `page.tsx` returns `null`. The fallback therefore never fired, and the home route rendered an empty `<main>`.
+
+**Fix:**
+1. Exported the inner `*Home` subcomponent from each of the 5 layout files
+2. Added `resolveHomeComponent(variant)` to `src/lib/layout-registry.ts`
+3. Changed all 5 layouts to render plain `{children}` in the main slot
+4. Updated `src/app/shop/[slug]/page.tsx` to load shop + render the resolved Home component directly (instead of returning null)
+
+**Verified:** All 5 shops (shoezaa, mzizi, pwani-beads, kanga-dreams, coco-grove) now render 5 product cards each on both the path route (`/shop/<slug>`) and the subdomain route (`<slug>.maybetomorrow.store`). About pages still render via the `{children}` slot. HTML size per shop grew from ~10KB (chrome-only) to ~30KB (with product grid).
+
+**Files touched:**
+- `src/components/layouts/{EarthyArtisan,VibrantMarket,OceanCalm,HeritageStory,BoldMaker}.tsx` — export `*Home`, replace fallback with `{children}`
+- `src/lib/layout-registry.ts` — add `resolveHomeComponent` + `homeRegistry`
+- `src/app/shop/[slug]/page.tsx` — render resolved Home component

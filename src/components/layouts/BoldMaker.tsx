@@ -72,7 +72,7 @@ export function BoldMaker({ shop, products, tokens, rates, children }: ShopLayou
       </section>
 
       {/* Main */}
-      <main>{children ?? <BoldHome shop={shop} products={products} rates={rates} />}</main>
+      <main>{children}</main>
 
       {/* Footer */}
       <footer className="border-t-4 border-black bg-black text-[#FAFAF7]">
@@ -90,7 +90,7 @@ export function BoldMaker({ shop, products, tokens, rates, children }: ShopLayou
   );
 }
 
-function BoldHome({
+export function BoldHome({
   shop,
   products,
   rates,

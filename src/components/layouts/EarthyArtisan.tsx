@@ -66,7 +66,7 @@ export function EarthyArtisan({ shop, products, tokens, rates, children }: ShopL
 
       {/* Main / children slot */}
       <main className="max-w-5xl mx-auto px-6 pb-24">
-        {children ?? <EarthyHome shop={shop} products={products} rates={rates} />}
+        {children}
       </main>
 
       {/* Footer */}
@@ -83,7 +83,7 @@ export function EarthyArtisan({ shop, products, tokens, rates, children }: ShopL
   );
 }
 
-function EarthyHome({
+export function EarthyHome({
   shop,
   products,
   rates,
