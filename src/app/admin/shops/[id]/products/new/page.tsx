@@ -142,6 +142,27 @@ export default async function NewProductPage({
           </div>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Sizes <span className="normal-case text-teal-900/40">(optional, comma-separated)</span></Label>
+            <input
+              type="text"
+              name="sizes"
+              placeholder="S, M, L, XL"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label>Colors <span className="normal-case text-teal-900/40">(optional, comma-separated)</span></Label>
+            <input
+              type="text"
+              name="colors"
+              placeholder="Natural, Black, Indigo"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
         <div>
           <Label>Photos (up to 3)</Label>
           <div className="space-y-4">

@@ -18,16 +18,56 @@ export type DeliveryZone =
   | 'mombasa'
   | 'further';
 
-/** Flat delivery fees in KES, keyed by zone. */
-const DELIVERY_FEES_KES: Record<DeliveryZone, number> = {
+/**
+ * Flat delivery fees in KES, keyed by zone — cached in memory for the
+ * lifetime of the process. The source of truth is the `delivery_fees`
+ * table which the admin can edit. `invalidateDeliveryFeeCache()` is
+ * called from the admin action after each update.
+ */
+let feeCache: Record<string, number> | null = null;
+let feeCacheLabels: Record<string, string> | null = null;
+
+export function invalidateDeliveryFeeCache(): void {
+  feeCache = null;
+  feeCacheLabels = null;
+}
+
+async function loadFees(): Promise<Record<string, number>> {
+  if (feeCache) return feeCache;
+  const rows = await db.select().from(schema.deliveryFees);
+  const map: Record<string, number> = {};
+  const labels: Record<string, string> = {};
+  for (const r of rows) {
+    map[r.zone] = r.feeKes;
+    labels[r.zone] = r.label;
+  }
+  feeCache = map;
+  feeCacheLabels = labels;
+  return map;
+}
+
+/** Fallback values — used only if the DB row is missing. */
+const FALLBACK_FEES: Record<DeliveryZone, number> = {
   'diani-strip': 200,
   'south-coast': 500,
   mombasa: 1500,
   further: 3000,
 };
 
-export function getDeliveryFeeKes(zone: DeliveryZone): number {
-  return DELIVERY_FEES_KES[zone];
+export async function getDeliveryFeeKes(zone: DeliveryZone): Promise<number> {
+  const fees = await loadFees();
+  return fees[zone] ?? FALLBACK_FEES[zone];
+}
+
+export async function getAllDeliveryFees(): Promise<
+  Array<{ zone: DeliveryZone; label: string; feeKes: number }>
+> {
+  const rows = await db.select().from(schema.deliveryFees).orderBy(schema.deliveryFees.feeKes);
+  return rows.map((r) => ({
+    zone: r.zone as DeliveryZone,
+    label: r.label,
+    feeKes: r.feeKes,
+  }));
 }
 
 export type CreateOrderInput = {
@@ -43,6 +83,7 @@ export type CreateOrderInput = {
   deliveryTimeNote: string | null;
   newsletterOptin: boolean;
   notes: string | null;
+  variantSelection: string | null;
 };
 
 export type CreatedOrder = {
@@ -89,7 +130,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
   }
 
   const marginPct = Number(process.env.PLATFORM_MARGIN_PCT ?? '10');
-  const deliveryFeeKes = getDeliveryFeeKes(input.deliveryZone);
+  const deliveryFeeKes = await getDeliveryFeeKes(input.deliveryZone);
 
   const line = computeLine(product, qty);
   const productsSubtotalKes = line.lineTotalKes;
@@ -134,6 +175,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
       lineTotalKes: line.lineTotalKes,
       marginKes: lineMarginKes,
       isCrossSell: false,
+      variantSelection: input.variantSelection ?? null,
     });
   } catch (e) {
     // Compensate: drop the orphan order
@@ -177,4 +219,152 @@ export async function findProductForCheckout(
   if (!product) return null;
 
   return { shop, product };
+}
+
+// ============================================================================
+// Multi-item cart order
+// ============================================================================
+
+export type CartLine = {
+  productId: number;
+  qty: number;
+  variantSize?: string | null;
+  variantColor?: string | null;
+};
+
+export type CreateCartOrderInput = {
+  shop: Shop;
+  lines: CartLine[];
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  deliveryZone: DeliveryZone;
+  deliveryAddress: string;
+  deliveryDate: string;
+  deliveryTimeNote: string | null;
+  newsletterOptin: boolean;
+  notes: string | null;
+};
+
+export async function createOrderFromCart(
+  input: CreateCartOrderInput,
+): Promise<CreatedOrder> {
+  const { shop, lines } = input;
+
+  if (lines.length === 0) {
+    throw new Error('Cart is empty');
+  }
+
+  // Load all products for the cart (from this shop, active)
+  const productIds = [...new Set(lines.map((l) => l.productId))];
+  const products = await db
+    .select()
+    .from(schema.products)
+    .where(
+      and(
+        eq(schema.products.shopId, shop.id),
+        eq(schema.products.status, 'active'),
+      ),
+    );
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  // Validate every cart line has a matching product
+  for (const line of lines) {
+    const prod = byId.get(line.productId);
+    if (!prod) {
+      throw new Error(`Product ${line.productId} not found or unavailable`);
+    }
+    if (line.qty < 1 || line.qty > 50) {
+      throw new Error(`Invalid quantity ${line.qty} for product ${prod.name}`);
+    }
+  }
+
+  const marginPct = Number(process.env.PLATFORM_MARGIN_PCT ?? '10');
+  const deliveryFeeKes = await getDeliveryFeeKes(input.deliveryZone);
+
+  // Compute line economics
+  const itemRows: Array<{
+    shopId: number;
+    productId: number;
+    qty: number;
+    unitPriceKes: number;
+    discountPct: number;
+    lineTotalKes: number;
+    marginKes: number;
+    isCrossSell: boolean;
+    variantSelection: string | null;
+  }> = [];
+  let productsSubtotalKes = 0;
+  let totalMarginKes = 0;
+
+  for (const line of lines) {
+    const prod = byId.get(line.productId)!;
+    const netUnit = Math.round(prod.priceKes * (1 - prod.discountPct / 100));
+    const lineTotal = netUnit * line.qty;
+    const lineMargin = Math.round(lineTotal * (marginPct / 100));
+
+    const variantParts: string[] = [];
+    if (line.variantSize) variantParts.push(`Size: ${line.variantSize}`);
+    if (line.variantColor) variantParts.push(`Color: ${line.variantColor}`);
+    const variantSelection = variantParts.length > 0 ? variantParts.join(', ') : null;
+
+    productsSubtotalKes += lineTotal;
+    totalMarginKes += lineMargin;
+
+    itemRows.push({
+      shopId: shop.id,
+      productId: prod.id,
+      qty: line.qty,
+      unitPriceKes: prod.priceKes,
+      discountPct: prod.discountPct,
+      lineTotalKes: lineTotal,
+      marginKes: lineMargin,
+      isCrossSell: false,
+      variantSelection,
+    });
+  }
+
+  const totalKes = productsSubtotalKes + deliveryFeeKes + totalMarginKes;
+  const orderNumber = generateOrderNumber();
+
+  const [orderRow] = await db
+    .insert(schema.orders)
+    .values({
+      orderNumber,
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      customerEmail: input.customerEmail,
+      deliveryZone: input.deliveryZone,
+      deliveryAddress: input.deliveryAddress,
+      deliveryDate: input.deliveryDate,
+      deliveryTimeNote: input.deliveryTimeNote,
+      deliveryFeeKes,
+      initialShopId: shop.id,
+      productsSubtotalKes,
+      marginKes: totalMarginKes,
+      totalKes,
+      paymentMethod: 'cash',
+      status: 'new',
+      newsletterOptin: input.newsletterOptin,
+      notes: input.notes,
+    })
+    .returning({ id: schema.orders.id });
+
+  try {
+    await db.insert(schema.orderItems).values(
+      itemRows.map((r) => ({ ...r, orderId: orderRow.id })),
+    );
+  } catch (e) {
+    await db.delete(schema.orders).where(eq(schema.orders.id, orderRow.id));
+    throw e;
+  }
+
+  return {
+    orderId: orderRow.id,
+    orderNumber,
+    totalKes,
+    productsSubtotalKes,
+    marginKes: totalMarginKes,
+    deliveryFeeKes,
+  };
 }

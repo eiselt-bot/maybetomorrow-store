@@ -33,6 +33,7 @@ async function loadOrder(orderNumber: string) {
       unitPriceKes: schema.orderItems.unitPriceKes,
       discountPct: schema.orderItems.discountPct,
       lineTotalKes: schema.orderItems.lineTotalKes,
+      variantSelection: schema.orderItems.variantSelection,
       marginKes: schema.orderItems.marginKes,
       productName: schema.products.name,
       productId: schema.products.id,
@@ -119,6 +120,9 @@ export default async function OrderDetailPage({
                       KES {it.unitPriceKes.toLocaleString('en-KE')}
                       {it.discountPct > 0 && ` (−${it.discountPct}%)`}
                     </p>
+                    {it.variantSelection && (
+                      <p className="text-xs text-ochre-600 mt-0.5">{it.variantSelection}</p>
+                    )}
                   </div>
                   <div className="text-right tabular-nums">
                     <p className="font-semibold text-teal-900">

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CartIcon } from '@/components/ui/CartIcon';
 import type { ShopLayoutProps } from './types';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { Badge } from '@/components/ui/Badge';
@@ -37,6 +38,7 @@ export function EarthyArtisan({ shop, products, tokens, rates, children }: ShopL
             <Link href={`/shop/${shop.slug}/about`} className="hover:text-[var(--mt-primary)]">
               About
             </Link>
+            <CartIcon slug={shop.slug} />
           </nav>
         </div>
       </header>

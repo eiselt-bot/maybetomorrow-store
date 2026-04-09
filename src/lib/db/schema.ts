@@ -111,6 +111,8 @@ export const products = pgTable(
     description: text('description'),
     productionInfo: text('production_info'),
     deliveryDays: integer('delivery_days').default(1),
+    sizes: text('sizes'),
+    colors: text('colors'),
     priceKes: integer('price_kes').notNull(),
     photos: jsonb('photos').$type<string[]>().default([]),
     isTop5: boolean('is_top5').notNull().default(true),
@@ -176,6 +178,7 @@ export const orderItems = pgTable(
     lineTotalKes: integer('line_total_kes').notNull(),
     marginKes: integer('margin_kes').notNull(),
     isCrossSell: boolean('is_cross_sell').notNull().default(false),
+    variantSelection: text('variant_selection'),
   },
   (t) => ({
     orderIdx: index('order_items_order_idx').on(t.orderId),
@@ -366,6 +369,17 @@ export const shopMockups = pgTable(
 
 export type ShopMockup = typeof shopMockups.$inferSelect;
 export type NewShopMockup = typeof shopMockups.$inferInsert;
+
+
+// ============ DELIVERY FEES (admin-editable) ============
+export const deliveryFees = pgTable('delivery_fees', {
+  zone: deliveryZoneEnum('zone').primaryKey(),
+  label: text('label').notNull(),
+  feeKes: integer('fee_kes').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type DeliveryFee = typeof deliveryFees.$inferSelect;
 
 // ============ TYPE EXPORTS ============
 

@@ -95,6 +95,8 @@ const productSchema = z.object({
   isTop5: z.boolean().default(false),
   photos: z.array(z.string().max(500)).max(3).default([]),
   status: productStatusSchema.default('active'),
+  sizes: z.string().max(300).nullable().optional(),
+  colors: z.string().max(300).nullable().optional(),
 });
 
 const brandValuesSchema = z
@@ -757,4 +759,124 @@ export async function createShopForm(formData: FormData): Promise<void> {
 
   revalidatePath('/admin/shops');
   redirect(`/admin/shops/${row.id}`);
+}
+
+// ============================================================================
+// Payouts: create settlement rows for delivered orders
+// ============================================================================
+
+/**
+ * Sweep every delivered order of the given shop that is not yet in the
+ * `payouts` table and create one payout row per order (gross = line total,
+ * margin = platform margin, net = gross - margin). Marks all newly
+ * created payouts with paid_at = NOW() to indicate the M-Pesa transfer
+ * happened out-of-band.
+ */
+export async function createPayoutsForShopForm(
+  shopId: number,
+  formData: FormData,
+): Promise<void> {
+  await requireAdmin();
+
+  const mpesaRef = String(formData.get('mpesaRef') ?? '').trim() || null;
+
+  // Find all delivered, not-yet-paid-out order lines for this shop
+  const items = await db
+    .select({
+      orderId: schema.orderItems.orderId,
+      lineTotalKes: schema.orderItems.lineTotalKes,
+      marginKes: schema.orderItems.marginKes,
+    })
+    .from(schema.orderItems)
+    .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+    .leftJoin(schema.payouts, and(
+      eq(schema.payouts.orderId, schema.orderItems.orderId),
+      eq(schema.payouts.shopId, shopId),
+    ))
+    .where(and(
+      eq(schema.orderItems.shopId, shopId),
+      eq(schema.orders.status, 'delivered'),
+    ));
+
+  // Aggregate per order (one payout per order, summing multi-line cases)
+  const byOrder = new Map<number, { gross: number; margin: number }>();
+  for (const it of items) {
+    const cur = byOrder.get(it.orderId) ?? { gross: 0, margin: 0 };
+    cur.gross += it.lineTotalKes;
+    cur.margin += it.marginKes;
+    byOrder.set(it.orderId, cur);
+  }
+
+  if (byOrder.size === 0) {
+    redirect(`/admin/payouts?error=${encodeURIComponent('Nothing to pay out for this shop')}`);
+  }
+
+  // Skip orders that already have a payout row for this shop
+  const existingForShop = await db
+    .select({ orderId: schema.payouts.orderId })
+    .from(schema.payouts)
+    .where(eq(schema.payouts.shopId, shopId));
+  const already = new Set(existingForShop.map((r) => r.orderId));
+
+  const now = new Date();
+  const toInsert = [];
+  for (const [orderId, agg] of byOrder.entries()) {
+    if (already.has(orderId)) continue;
+    toInsert.push({
+      shopId,
+      orderId,
+      grossKes: agg.gross,
+      marginKes: agg.margin,
+      deductionsKes: 0,
+      netKes: agg.gross - agg.margin,
+      mpesaRef,
+      paidAt: now,
+    });
+  }
+
+  if (toInsert.length === 0) {
+    redirect(`/admin/payouts?error=${encodeURIComponent('All delivered orders for this shop have already been paid')}`);
+  }
+
+  await db.insert(schema.payouts).values(toInsert);
+
+  revalidatePath('/admin/payouts');
+  redirect(`/admin/payouts?paid=${toInsert.length}`);
+}
+
+// ============================================================================
+// Delivery fees: per-zone admin editor
+// ============================================================================
+
+const deliveryFeeSchema = z.object({
+  zone: z.enum(['diani-strip', 'south-coast', 'mombasa', 'further']),
+  label: z.string().trim().min(1).max(80),
+  feeKes: z.coerce.number().int().min(0).max(100000),
+});
+
+export async function updateDeliveryFeeForm(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const raw = {
+    zone: formData.get('zone'),
+    label: formData.get('label'),
+    feeKes: formData.get('feeKes'),
+  };
+  const parsed = deliveryFeeSchema.safeParse(raw);
+  if (!parsed.success) {
+    redirect('/admin/delivery-fees?error=' + encodeURIComponent(parsed.error.issues[0]?.message ?? 'Invalid'));
+  }
+  const data = parsed.data!;
+
+  await db
+    .update(schema.deliveryFees)
+    .set({ label: data.label, feeKes: data.feeKes, updatedAt: new Date() })
+    .where(eq(schema.deliveryFees.zone, data.zone));
+
+  // Invalidate the in-process cache inside order-service
+  const { invalidateDeliveryFeeCache } = await import('@/lib/services/order-service');
+  invalidateDeliveryFeeCache();
+
+  revalidatePath('/admin/delivery-fees');
+  redirect(`/admin/delivery-fees?saved=${data.zone}`);
 }

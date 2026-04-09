@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { loadProduct, loadShop } from '../../_loaders';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { Button } from '@/components/ui/Button';
+import { AddToCartButton } from '@/components/ui/AddToCartButton';
 import { Badge } from '@/components/ui/Badge';
 
 type PageProps = {
@@ -134,11 +135,12 @@ export default async function ProductPage({ params }: PageProps) {
             )}
           </div>
 
-          <Link href={`/shop/${slug}/checkout?product=${product.id}`} className="inline-block w-full sm:w-auto">
-            <Button variant="primary" size="lg" className="w-full sm:w-auto">
-              Order now →
-            </Button>
-          </Link>
+          <AddToCartButton
+            slug={slug}
+            productId={product.id}
+            sizes={product.sizes ?? null}
+            colors={product.colors ?? null}
+          />
 
           <p className="mt-4 text-xs opacity-60">
             Cash on delivery · Diani Strip + South Coast

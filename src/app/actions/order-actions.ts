@@ -56,6 +56,8 @@ const schema = z.object({
   newsletterOptin: z
     .union([z.literal('on'), z.literal('off'), z.undefined()])
     .transform((v) => v === 'on'),
+  variantSize: z.string().trim().max(80).optional().transform(v => v || null),
+  variantColor: z.string().trim().max(80).optional().transform(v => v || null),
 });
 
 function buildErrorRedirect(
@@ -97,6 +99,8 @@ export async function placeOrderForm(
     qty: formData.get('qty') ?? '1',
     notes: formData.get('notes'),
     newsletterOptin: formData.get('newsletterOptin') ?? 'off',
+    variantSize: formData.get('variant_size'),
+    variantColor: formData.get('variant_color'),
   };
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
@@ -113,6 +117,11 @@ export async function placeOrderForm(
   const { shop, product } = found!;
 
   // 3) Create the order
+  const variantParts: string[] = [];
+  if (data.variantSize) variantParts.push(`Size: ${data.variantSize}`);
+  if (data.variantColor) variantParts.push(`Color: ${data.variantColor}`);
+  const variantSelection = variantParts.length > 0 ? variantParts.join(', ') : null;
+
   const input: CreateOrderInput = {
     shop,
     product,
@@ -125,6 +134,7 @@ export async function placeOrderForm(
     deliveryDate: data.deliveryDate,
     deliveryTimeNote: data.deliveryTimeNote,
     newsletterOptin: data.newsletterOptin,
+    variantSelection,
     notes: data.notes,
   };
 
@@ -205,4 +215,130 @@ export async function updateOrderStatusForm(
   revalidatePath('/admin/orders');
   revalidatePath(`/admin/orders/${encodeURIComponent(row.orderNumber)}`);
   redirect(`/admin/orders/${encodeURIComponent(row.orderNumber)}?ok=1`);
+}
+
+// ============================================================================
+// Multi-item cart checkout
+// ============================================================================
+
+import {
+  createOrderFromCart,
+  type CartLine,
+  type CreateCartOrderInput,
+} from '@/lib/services/order-service';
+import { eq as _eq, and as _and } from 'drizzle-orm';
+
+const cartSchema = z.object({
+  name: z.string().trim().min(1, 'Name required').max(200),
+  phone: z
+    .string()
+    .trim()
+    .min(5, 'Phone required')
+    .max(40)
+    .regex(/^[\d+\s()-]+$/, 'Invalid phone format'),
+  email: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  zone: z.enum(['diani-strip', 'south-coast', 'mombasa', 'further']),
+  deliveryDate: z.string().min(1, 'Delivery date required').max(40),
+  address: z.string().trim().min(3, 'Address required').max(1000),
+  notes: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+const cartLineSchema = z.object({
+  productId: z.number().int().positive(),
+  qty: z.number().int().min(1).max(50),
+  variantSize: z.string().max(80).optional().nullable(),
+  variantColor: z.string().max(80).optional().nullable(),
+});
+
+function buildCartError(slug: string, msg: string): never {
+  redirect(
+    `/shop/${slug}/cart?error=${encodeURIComponent(msg)}`,
+  );
+}
+
+export async function placeCartOrderForm(
+  slug: string,
+  formData: FormData,
+): Promise<void> {
+  const raw = {
+    name: formData.get('name'),
+    phone: formData.get('phone'),
+    email: formData.get('email'),
+    zone: formData.get('zone'),
+    deliveryDate: formData.get('deliveryDate'),
+    address: formData.get('address'),
+    notes: formData.get('notes'),
+  };
+  const parsed = cartSchema.safeParse(raw);
+  if (!parsed.success) {
+    buildCartError(slug, parsed.error.issues[0]?.message ?? 'Invalid form');
+  }
+  const data = parsed.data!;
+
+  // Parse cart
+  const cartRaw = String(formData.get('cart') ?? '');
+  let cart: CartLine[];
+  try {
+    const arr = JSON.parse(cartRaw);
+    if (!Array.isArray(arr)) throw new Error('cart not an array');
+    cart = arr.map((line, i) => {
+      const p = cartLineSchema.safeParse(line);
+      if (!p.success) throw new Error(`line ${i}: ${p.error.issues[0]?.message}`);
+      return p.data;
+    });
+  } catch (e) {
+    buildCartError(slug, `Invalid cart: ${(e as Error).message}`);
+  }
+  if (cart!.length === 0) {
+    buildCartError(slug, 'Cart is empty');
+  }
+
+  // Load shop (dbSchema is imported above as an alias for drizzle schema)
+  const [shopRow] = await db
+    .select()
+    .from(dbSchema.shops)
+    .where(_and(_eq(dbSchema.shops.slug, slug), _eq(dbSchema.shops.status, 'live')))
+    .limit(1);
+  if (!shopRow) {
+    buildCartError(slug, 'Shop not found');
+  }
+
+  const input: CreateCartOrderInput = {
+    shop: shopRow!,
+    lines: cart!,
+    customerName: data.name,
+    customerPhone: data.phone,
+    customerEmail: data.email,
+    deliveryZone: data.zone,
+    deliveryAddress: data.address,
+    deliveryDate: data.deliveryDate,
+    deliveryTimeNote: null,
+    newsletterOptin: false,
+    notes: data.notes,
+  };
+
+  let created;
+  try {
+    created = await createOrderFromCart(input);
+  } catch (e) {
+    const msg = (e as Error).message || 'Order creation failed';
+    console.error('[placeCartOrderForm]', msg);
+    buildCartError(slug, msg);
+  }
+
+  revalidatePath('/admin/orders');
+  revalidatePath(`/admin/shops/${shopRow!.id}`);
+  redirect(
+    `/shop/${slug}/checkout/success?order=${encodeURIComponent(created!.orderNumber)}`,
+  );
 }

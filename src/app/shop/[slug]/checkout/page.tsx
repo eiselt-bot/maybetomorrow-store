@@ -60,7 +60,7 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
     | 'south-coast'
     | 'mombasa'
     | 'further';
-  const deliveryFeeKes = getDeliveryFeeKes(currentZone);
+  const deliveryFeeKes = await getDeliveryFeeKes(currentZone);
   const marginKes = Math.round(lineTotalKes * (marginPct / 100));
   const totalKes = lineTotalKes + deliveryFeeKes + marginKes;
 
@@ -167,7 +167,54 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
                   className="w-full px-3 py-2 rounded-md border border-black/20 bg-white focus:border-[var(--mt-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--mt-primary)]/30 resize-none"
                 />
               </div>
-              <div className="sm:col-span-2">
+              {(product.sizes || product.colors) && (
+                <div className="sm:col-span-2 space-y-3 rounded-lg bg-[var(--mt-primary)]/5 p-4">
+                  <p className="text-xs uppercase tracking-wider text-[var(--mt-primary)] font-semibold">
+                    Product options
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {product.sizes && (
+                      <div>
+                        <label className="block text-xs uppercase tracking-wider mb-1.5 opacity-70">
+                          Size <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          name="variant_size"
+                          required
+                          className="w-full h-11 px-3 rounded-md border border-black/20 bg-white focus:border-[var(--mt-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--mt-primary)]/30"
+                        >
+                          <option value="">Pick a size</option>
+                          {product.sizes.split(',').map((s) => s.trim()).filter(Boolean).map((sz) => (
+                            <option key={sz} value={sz}>
+                              {sz}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {product.colors && (
+                      <div>
+                        <label className="block text-xs uppercase tracking-wider mb-1.5 opacity-70">
+                          Color <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          name="variant_color"
+                          required
+                          className="w-full h-11 px-3 rounded-md border border-black/20 bg-white focus:border-[var(--mt-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--mt-primary)]/30"
+                        >
+                          <option value="">Pick a color</option>
+                          {product.colors.split(',').map((c) => c.trim()).filter(Boolean).map((col) => (
+                            <option key={col} value={col}>
+                              {col}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+                            <div className="sm:col-span-2">
                 <label className="block text-xs uppercase tracking-wider mb-1.5 opacity-70">
                   Notes for the seller (optional)
                 </label>

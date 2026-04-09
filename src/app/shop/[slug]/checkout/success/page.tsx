@@ -32,6 +32,7 @@ async function loadOrderForShop(orderNumber: string, shopId: number) {
       unitPriceKes: schema.orderItems.unitPriceKes,
       discountPct: schema.orderItems.discountPct,
       lineTotalKes: schema.orderItems.lineTotalKes,
+      variantSelection: schema.orderItems.variantSelection,
       productName: schema.products.name,
     })
     .from(schema.orderItems)
@@ -93,6 +94,9 @@ export default async function CheckoutSuccessPage({ params, searchParams }: Page
               <span className="flex-1">
                 <span className="font-semibold">{it.productName}</span>
                 <span className="opacity-60"> × {it.qty}</span>
+                {it.variantSelection && (
+                  <span className="block text-[11px] opacity-60">{it.variantSelection}</span>
+                )}
               </span>
               <span>KES {it.lineTotalKes.toLocaleString('en-KE')}</span>
             </li>

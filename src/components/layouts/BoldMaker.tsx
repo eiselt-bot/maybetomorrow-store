@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CartIcon } from '@/components/ui/CartIcon';
 import type { ShopLayoutProps } from './types';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
@@ -42,6 +43,7 @@ export function BoldMaker({ shop, products, tokens, rates, children }: ShopLayou
             >
               About
             </Link>
+            <CartIcon slug={shop.slug} />
           </nav>
         </div>
       </header>

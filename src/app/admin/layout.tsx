@@ -28,6 +28,11 @@ const NAV: NavItem[] = [
     icon: 'M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z',
   },
   {
+    href: '/admin/delivery-fees',
+    label: 'Delivery',
+    icon: 'M8 7h10l2 5v5a1 1 0 01-1 1h-1a2 2 0 01-4 0H10a2 2 0 01-4 0H5a1 1 0 01-1-1v-5a1 1 0 011-1h3V7z',
+  },
+  {
     href: '/admin/onboard',
     label: 'Onboard',
     icon: 'M12 4v16m8-8H4',

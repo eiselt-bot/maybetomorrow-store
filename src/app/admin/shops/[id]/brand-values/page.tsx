@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { db, schema } from '@/lib/db/client';
 import { eq } from 'drizzle-orm';
 import { updateBrandValuesForm, generateMockupsForm } from '@/app/actions/shop-admin';
+import { BrandValuesEditor } from '@/components/ui/BrandValuesEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,56 +77,7 @@ export default async function BrandValuesPage({
       </div>
 
       <form action={action} className="space-y-8">
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
-          {bvPadded.map((val, i) => (
-            <div
-              key={i}
-              className="relative rounded-2xl border-2 bg-gradient-to-br from-sand-50 to-white shadow-sm hover:shadow-lg transition group"
-              style={{ borderColor: `${primary}40` }}
-            >
-              {/* Number badge */}
-              <div
-                className="absolute -top-4 -left-4 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md"
-                style={{ backgroundColor: primary }}
-              >
-                {i + 1}
-              </div>
-
-              <div className="p-5 pt-7">
-                <label className="block text-[10px] font-semibold tracking-widest uppercase text-teal-900/50 mb-2">
-                  Value {i + 1}
-                </label>
-                <textarea
-                  name={`value_${i}`}
-                  defaultValue={val}
-                  rows={5}
-                  className="w-full resize-none rounded-lg border border-teal-900/10 bg-white px-3 py-2 text-sm text-teal-900 placeholder:text-teal-900/30 focus:outline-none focus:ring-2 transition font-display leading-snug"
-                  style={{
-                    boxShadow: `0 0 0 0 ${primary}`,
-                  }}
-                  placeholder={
-                    [
-                      'Handcrafted with care',
-                      'Rooted in Diani',
-                      'Fair to every maker',
-                      'Lasting, not throw-away',
-                      'Straight from the source',
-                    ][i]
-                  }
-                />
-                <p className="mt-2 text-[10px] text-teal-900/40">
-                  Keep it short. One sentence is ideal.
-                </p>
-              </div>
-
-              {/* Decorative corner */}
-              <div
-                className="absolute bottom-0 right-0 w-16 h-16 opacity-10 pointer-events-none rounded-tl-full"
-                style={{ backgroundColor: primary }}
-              />
-            </div>
-          ))}
-        </div>
+        <BrandValuesEditor initialValues={bvPadded} primary={primary} />
 
         <div className="flex items-center justify-between rounded-xl border border-teal-900/10 bg-sand-50 p-4">
           <div>

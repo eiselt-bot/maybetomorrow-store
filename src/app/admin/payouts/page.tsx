@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { db, schema } from '@/lib/db/client';
 import { eq, sql, isNull, isNotNull } from 'drizzle-orm';
+import { createPayoutsForShopForm } from '@/app/actions/shop-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,11 +64,20 @@ async function loadPayouts() {
   return { owed, totalOwed, history };
 }
 
-export default async function AdminPayoutsPage() {
+export default async function AdminPayoutsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const paid = typeof sp.paid === 'string' ? Number(sp.paid) : 0;
+  const errorMsg = typeof sp.error === 'string' ? sp.error : null;
   const data = await loadPayouts();
 
   return (
     <div className="space-y-8">
+      {errorMsg && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{errorMsg}</div>}
+      {paid > 0 && <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">Paid {paid} order{paid === 1 ? '' : 's'}.</div>}
       <header>
         <p className="text-xs font-semibold tracking-widest uppercase text-ochre-600">
           Finance
@@ -110,6 +120,7 @@ export default async function AdminPayoutsPage() {
                   <th className="text-left font-semibold px-4 py-3">Shop</th>
                   <th className="text-right font-semibold px-4 py-3">Delivered orders</th>
                   <th className="text-right font-semibold px-4 py-3">Owed</th>
+                  <th className="text-right font-semibold px-4 py-3"> </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-teal-900/5">
@@ -131,6 +142,22 @@ export default async function AdminPayoutsPage() {
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-semibold text-teal-900">
                       KES {r.owedKes.toLocaleString('en-KE')}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <form action={createPayoutsForShopForm.bind(null, r.shopId ?? 0)} className="inline-flex items-center gap-2">
+                        <input
+                          type="text"
+                          name="mpesaRef"
+                          placeholder="M-Pesa ref"
+                          className="h-8 px-2 text-xs rounded-lg border border-teal-900/15 bg-white w-28"
+                        />
+                        <button
+                          type="submit"
+                          className="h-8 px-3 rounded-lg bg-ochre-500 text-white text-xs font-semibold hover:bg-ochre-600 transition"
+                        >
+                          Pay out
+                        </button>
+                      </form>
                     </td>
                   </tr>
                 ))}

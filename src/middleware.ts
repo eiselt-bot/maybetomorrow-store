@@ -52,6 +52,11 @@ export function middleware(req: NextRequest) {
     return withPathnameHeader(NextResponse.next(), url.pathname);
   }
 
+  // API routes pass through unchanged (they are shop-scoped via the slug in the URL)
+  if (url.pathname.startsWith('/api/')) {
+    return withPathnameHeader(NextResponse.next(), url.pathname);
+  }
+
   // Shop subdomain → /shop/[slug]/*
   const shopPath = '/shop/' + subdomain + url.pathname;
   url.pathname = shopPath;
