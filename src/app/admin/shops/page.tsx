@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { db, schema } from '@/lib/db/client';
 import { eq, sql, desc } from 'drizzle-orm';
 import { env, isProd } from '@/lib/env';
@@ -68,14 +69,28 @@ export default async function AdminShopsPage() {
             {shops.length} total · {shops.filter((s) => s.status === 'live').length} live
           </p>
         </div>
+        <Link
+          href="/admin/shops/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-ochre-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ochre-600 transition"
+        >
+          <span>+</span>
+          <span>New shop</span>
+        </Link>
       </header>
 
       {shops.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-teal-900/15 bg-sand-50 p-12 text-center">
           <p className="font-display text-xl text-teal-900">No shops yet</p>
-          <p className="mt-1 text-sm text-teal-900/50">
-            Run the seed script to populate the cooperative.
+          <p className="mt-2 text-sm text-teal-900/50 max-w-sm mx-auto">
+            Onboard the first beach vendor to get started.
           </p>
+          <Link
+            href="/admin/shops/new"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-ochre-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ochre-600 transition"
+          >
+            <span>+</span>
+            <span>Create first shop</span>
+          </Link>
         </div>
       ) : (
         <div className="rounded-2xl border border-teal-900/10 overflow-hidden bg-white">
@@ -96,13 +111,17 @@ export default async function AdminShopsPage() {
               {shops.map((s) => (
                 <tr key={s.id} className="hover:bg-sand-50/60 transition">
                   <td className="px-4 py-3 text-teal-900/60 font-mono text-xs">
-                    {s.id}
+                    <Link href={`/admin/shops/${s.id}`} className="hover:text-ochre-600">
+                      #{s.id}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-ochre-600">
                     {s.slug}
                   </td>
-                  <td className="px-4 py-3 font-medium text-teal-900">
-                    {s.title}
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/admin/shops/${s.id}`} className="text-teal-900 hover:text-ochre-600">
+                      {s.title}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-teal-900/70 text-xs">
                     {s.layoutVariant || '—'}

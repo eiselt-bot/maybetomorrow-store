@@ -659,3 +659,102 @@ export async function applyMockupForm(
   revalidatePath(`/shop/${mockup.shopId}`);
   redirect(`/admin/shops/${shopId}?applied=${mockupId}`);
 }
+
+// ============================================================================
+// Shop creation
+// ============================================================================
+
+const createShopSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, dashes only'),
+  title: z.string().trim().min(1).max(200),
+  tagline: z.string().trim().max(300).optional().transform(v => v || null),
+  vendorPhone: z.string().trim().min(5).max(40),
+  vendorMpesaNumber: z.string().trim().max(40).optional().transform(v => v || null),
+  aboutName: z.string().trim().max(200).optional().transform(v => v || null),
+  aboutOffering: z.string().trim().max(2000).optional().transform(v => v || null),
+  aboutPurpose: z.string().trim().max(2000).optional().transform(v => v || null),
+  aboutProduction: z.string().trim().max(2000).optional().transform(v => v || null),
+  layoutVariant: layoutVariantSchema.default('earthy-artisan'),
+});
+
+const DEFAULT_DESIGN_TOKENS = {
+  primary: '#c87a1f',
+  secondary: '#0f7080',
+  accent: '#d99543',
+  font_display: 'Fraunces',
+  font_body: 'Inter',
+  radius: 'md' as const,
+  hero_treatment: 'warm-overlay' as const,
+};
+
+export async function createShopForm(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const raw = {
+    slug: formData.get('slug'),
+    title: formData.get('title'),
+    tagline: formData.get('tagline'),
+    vendorPhone: formData.get('vendorPhone'),
+    vendorMpesaNumber: formData.get('vendorMpesaNumber'),
+    aboutName: formData.get('aboutName'),
+    aboutOffering: formData.get('aboutOffering'),
+    aboutPurpose: formData.get('aboutPurpose'),
+    aboutProduction: formData.get('aboutProduction'),
+    layoutVariant: formData.get('layoutVariant'),
+  };
+
+  const parsed = createShopSchema.safeParse(raw);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? 'Invalid form';
+    const params = new URLSearchParams({ error: msg });
+    for (const [k, v] of Object.entries(raw)) {
+      if (typeof v === 'string' && v.length > 0) params.set(`f_${k}`, v);
+    }
+    redirect(`/admin/shops/new?${params.toString()}`);
+  }
+  const data = parsed.data!;
+
+  // Check slug uniqueness
+  const existing = await db
+    .select({ id: schema.shops.id })
+    .from(schema.shops)
+    .where(eq(schema.shops.slug, data.slug))
+    .limit(1);
+  if (existing.length > 0) {
+    const params = new URLSearchParams({
+      error: `A shop with slug "${data.slug}" already exists`,
+    });
+    for (const [k, v] of Object.entries(raw)) {
+      if (typeof v === 'string' && v.length > 0) params.set(`f_${k}`, v);
+    }
+    redirect(`/admin/shops/new?${params.toString()}`);
+  }
+
+  const [row] = await db
+    .insert(schema.shops)
+    .values({
+      slug: data.slug,
+      title: data.title,
+      tagline: data.tagline,
+      vendorPhone: data.vendorPhone,
+      vendorMpesaNumber: data.vendorMpesaNumber,
+      aboutName: data.aboutName,
+      aboutOffering: data.aboutOffering,
+      aboutPurpose: data.aboutPurpose,
+      aboutProduction: data.aboutProduction,
+      layoutVariant: data.layoutVariant,
+      designTokens: DEFAULT_DESIGN_TOKENS,
+      copyTone: null,
+      brandValues: [],
+      status: 'draft',
+    })
+    .returning({ id: schema.shops.id });
+
+  revalidatePath('/admin/shops');
+  redirect(`/admin/shops/${row.id}`);
+}

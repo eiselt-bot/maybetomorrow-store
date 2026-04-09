@@ -134,7 +134,7 @@ export default async function ProductPage({ params }: PageProps) {
             )}
           </div>
 
-          <Link href={`/shop/${slug}/checkout`} className="inline-block w-full sm:w-auto">
+          <Link href={`/shop/${slug}/checkout?product=${product.id}`} className="inline-block w-full sm:w-auto">
             <Button variant="primary" size="lg" className="w-full sm:w-auto">
               Order now →
             </Button>

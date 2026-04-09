@@ -230,44 +230,68 @@ export default async function AdminShopDetailPage({
         </div>
       </div>
 
-      {/* ===== ANCHOR NAV ===== */}
-      <nav className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-white/95 backdrop-blur border-y border-teal-900/5">
-        <ul className="flex items-center gap-1 text-xs font-semibold overflow-x-auto">
-          {[
-            ['about', 'About'],
-            ['brand-values', `Brand Values (${brandValues.length}/5)`],
-            ['template', 'Template'],
-            ['products', `Products (${products.length})`],
-            ['settings', 'Settings'],
-          ].map(([anchor, label]) => (
-            <li key={anchor}>
-              <a
-                href={`#${anchor}`}
-                className="px-3 py-1.5 rounded-full text-teal-900/70 hover:text-ochre-600 hover:bg-ochre-400/10 transition"
-              >
-                {label}
-              </a>
-            </li>
-          ))}
-          <li className="ml-auto flex items-center gap-2">
+      {/* ===== SECTION NAV — direct links to each editor page ===== */}
+      <nav className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-y border-teal-900/10">
+        <ul className="flex items-center gap-2 text-xs font-semibold overflow-x-auto">
+          <li className="flex-shrink-0">
+            <a
+              href="#about"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-teal-900/70 hover:text-ochre-600 hover:bg-ochre-400/10 transition"
+            >
+              <span>About</span>
+            </a>
+          </li>
+          <li className="flex-shrink-0">
             <Link
               href={`/admin/shops/${shop.id}/brand-values`}
-              className="px-3 py-1.5 rounded-full text-teal-900/70 hover:text-ochre-600 hover:bg-ochre-400/10 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-900/15 bg-white text-teal-900 hover:border-ochre-500 hover:text-ochre-600 transition"
             >
-              Full BV editor →
+              <span>🎯</span>
+              <span>Brand Values ({brandValues.length}/5)</span>
             </Link>
-        <Link
-          href={`/admin/shops/${shop.id}/mockups`}
-          className="inline-flex items-center gap-2 rounded-lg border border-teal-900/15 bg-white px-4 py-2 text-sm font-semibold text-teal-900 hover:border-ochre-500 hover:text-ochre-600 transition"
-        >
-          <span>✨</span>
-          <span>Mockups</span>
-        </Link>
+          </li>
+          <li className="flex-shrink-0">
             <Link
               href={`/admin/shops/${shop.id}/template`}
-              className="px-3 py-1.5 rounded-full text-teal-900/70 hover:text-ochre-600 hover:bg-ochre-400/10 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-900/15 bg-white text-teal-900 hover:border-ochre-500 hover:text-ochre-600 transition"
             >
-              Full Template editor →
+              <span>🎨</span>
+              <span>Template &amp; Design</span>
+            </Link>
+          </li>
+          <li className="flex-shrink-0">
+            <Link
+              href={`/admin/shops/${shop.id}/mockups`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-900/15 bg-white text-teal-900 hover:border-ochre-500 hover:text-ochre-600 transition"
+            >
+              <span>✨</span>
+              <span>Mockups</span>
+            </Link>
+          </li>
+          <li className="flex-shrink-0">
+            <Link
+              href={`/admin/shops/${shop.id}/products`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-900/15 bg-white text-teal-900 hover:border-ochre-500 hover:text-ochre-600 transition"
+            >
+              <span>📦</span>
+              <span>Products ({products.length})</span>
+            </Link>
+          </li>
+          <li className="flex-shrink-0">
+            <a
+              href="#settings"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-teal-900/70 hover:text-ochre-600 hover:bg-ochre-400/10 transition"
+            >
+              <span>Settings</span>
+            </a>
+          </li>
+          <li className="ml-auto flex-shrink-0">
+            <Link
+              href={`/admin/shops/${shop.id}/products/new`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-ochre-500 text-white hover:bg-ochre-600 transition"
+            >
+              <span>+</span>
+              <span>New product</span>
             </Link>
           </li>
         </ul>
