@@ -42,12 +42,6 @@ export function BoldMaker({ shop, products, tokens, rates, children }: ShopLayou
             >
               About
             </Link>
-            <Link
-              href={`/shop/${shop.slug}/checkout`}
-              className="px-4 py-2 border-2 border-black border-l-0 bg-[var(--mt-accent)] hover:bg-black hover:text-white"
-            >
-              Cart
-            </Link>
           </nav>
         </div>
       </header>

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { db, schema } from '@/lib/db/client';
 import { eq } from 'drizzle-orm';
 import { createProductForm } from '@/app/actions/shop-admin';
+import { PhotoUpload } from '@/components/ui/PhotoUpload';
 
 export const dynamic = 'force-dynamic';
 
@@ -142,17 +143,11 @@ export default async function NewProductPage({
         </div>
 
         <div>
-          <Label>Photos (up to 3 URLs)</Label>
-          <div className="space-y-2">
-            {[0, 1, 2].map((i) => (
-              <input
-                key={i}
-                type="text"
-                name={`photo_${i}`}
-                className={inputClass}
-                placeholder={`https://... (photo ${i + 1})`}
-              />
-            ))}
+          <Label>Photos (up to 3)</Label>
+          <div className="space-y-4">
+            <PhotoUpload name="photo_0" label="Primary photo" />
+            <PhotoUpload name="photo_1" label="Photo 2 (optional)" />
+            <PhotoUpload name="photo_2" label="Photo 3 (optional)" />
           </div>
         </div>
 

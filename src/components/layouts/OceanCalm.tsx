@@ -42,12 +42,6 @@ export function OceanCalm({ shop, products, tokens, rates, children }: ShopLayou
               About
             </Link>
             <span className="text-slate-300">·</span>
-            <Link
-              href={`/shop/${shop.slug}/checkout`}
-              className="hover:text-[var(--mt-primary)]"
-            >
-              Cart
-            </Link>
           </nav>
         </div>
       </header>

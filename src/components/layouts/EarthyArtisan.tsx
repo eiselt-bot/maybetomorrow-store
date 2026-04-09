@@ -37,12 +37,6 @@ export function EarthyArtisan({ shop, products, tokens, rates, children }: ShopL
             <Link href={`/shop/${shop.slug}/about`} className="hover:text-[var(--mt-primary)]">
               About
             </Link>
-            <Link
-              href={`/shop/${shop.slug}/checkout`}
-              className="hover:text-[var(--mt-primary)]"
-            >
-              Cart
-            </Link>
           </nav>
         </div>
       </header>

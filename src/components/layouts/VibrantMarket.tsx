@@ -43,12 +43,6 @@ export function VibrantMarket({ shop, products, tokens, rates, children }: ShopL
             >
               About
             </Link>
-            <Link
-              href={`/shop/${shop.slug}/checkout`}
-              className="px-3 py-1.5 rounded-md bg-[var(--mt-accent)] text-black hover:opacity-90"
-            >
-              Cart
-            </Link>
           </nav>
         </div>
       </header>

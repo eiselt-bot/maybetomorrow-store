@@ -11,6 +11,7 @@ import {
   toggleProductTop5Form,
   deleteProductForm,
 } from '@/app/actions/shop-admin';
+import { PhotoUpload } from '@/components/ui/PhotoUpload';
 import type { LayoutVariant } from '@/lib/db/schema';
 
 export const dynamic = 'force-dynamic';
@@ -341,21 +342,11 @@ export default async function AdminShopDetailPage({
             />
           </div>
           <div className="md:col-span-2">
-            <Label>Photo URL</Label>
-            <input
+            <PhotoUpload
               name="aboutPhotoUrl"
-              defaultValue={shop.aboutPhotoUrl ?? ''}
-              className={inputClass}
-              placeholder="https://..."
+              label="Vendor photo"
+              defaultUrl={shop.aboutPhotoUrl ?? ''}
             />
-            {shop.aboutPhotoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={shop.aboutPhotoUrl}
-                alt={shop.aboutName ?? shop.title}
-                className="mt-3 h-32 w-32 rounded-xl object-cover border border-teal-900/10"
-              />
-            )}
           </div>
           <div className="md:col-span-2 flex justify-end">
             <SaveButton>Save About</SaveButton>
@@ -498,8 +489,8 @@ export default async function AdminShopDetailPage({
                 <input
                   type="text"
                   defaultValue={tokens.primary}
-                  className={`${inputClass} font-mono text-xs`}
-                  disabled
+                  className={`${inputClass} font-mono text-xs bg-sand-50`}
+                  readOnly
                 />
               </div>
             </div>
@@ -515,8 +506,8 @@ export default async function AdminShopDetailPage({
                 <input
                   type="text"
                   defaultValue={tokens.secondary}
-                  className={`${inputClass} font-mono text-xs`}
-                  disabled
+                  className={`${inputClass} font-mono text-xs bg-sand-50`}
+                  readOnly
                 />
               </div>
             </div>
@@ -532,8 +523,8 @@ export default async function AdminShopDetailPage({
                 <input
                   type="text"
                   defaultValue={tokens.accent}
-                  className={`${inputClass} font-mono text-xs`}
-                  disabled
+                  className={`${inputClass} font-mono text-xs bg-sand-50`}
+                  readOnly
                 />
               </div>
             </div>

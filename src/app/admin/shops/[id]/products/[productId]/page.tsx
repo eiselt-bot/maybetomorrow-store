@@ -6,6 +6,7 @@ import {
   updateProductForm,
   deleteProductForm,
 } from '@/app/actions/shop-admin';
+import { PhotoUpload } from '@/components/ui/PhotoUpload';
 
 export const dynamic = 'force-dynamic';
 
@@ -194,18 +195,11 @@ export default async function EditProductPage({
         </div>
 
         <div>
-          <Label>Photos (up to 3 URLs)</Label>
-          <div className="space-y-2">
-            {photoDefaults.map((p, i) => (
-              <input
-                key={i}
-                type="text"
-                name={`photo_${i}`}
-                defaultValue={p}
-                className={inputClass}
-                placeholder={`https://... (photo ${i + 1})`}
-              />
-            ))}
+          <Label>Photos (up to 3)</Label>
+          <div className="space-y-4">
+            <PhotoUpload name="photo_0" label="Primary photo" defaultUrl={photoDefaults[0] || ''} />
+            <PhotoUpload name="photo_1" label="Photo 2" defaultUrl={photoDefaults[1] || ''} />
+            <PhotoUpload name="photo_2" label="Photo 3" defaultUrl={photoDefaults[2] || ''} />
           </div>
         </div>
 

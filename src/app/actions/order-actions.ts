@@ -137,6 +137,22 @@ export async function placeOrderForm(
     buildErrorRedirect(slug, productId, msg, formData);
   }
 
+  // 4b) Write newsletter opt-in through (if opted in)
+  if (data.newsletterOptin && (data.email || data.phone)) {
+    try {
+      // Import lazily to avoid pulling into module init
+      const { db: _db, schema: _schema } = await import('@/lib/db/client');
+      await _db.insert(_schema.newsletterOptins).values({
+        email: data.email,
+        phone: data.phone,
+        sourceOrderId: created!.orderId,
+        sourceShopId: shop.id,
+      });
+    } catch (e) {
+      console.warn('[placeOrderForm] newsletter writethrough failed', (e as Error).message);
+    }
+  }
+
   // 4) Revalidate admin caches + redirect to success
   revalidatePath('/admin/orders');
   revalidatePath(`/admin/shops/${shop.id}`);

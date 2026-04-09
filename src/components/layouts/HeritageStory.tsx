@@ -42,12 +42,6 @@ export function HeritageStory({ shop, products, tokens, rates, children }: ShopL
             >
               About
             </Link>
-            <Link
-              href={`/shop/${shop.slug}/checkout`}
-              className="hover:opacity-80 drop-shadow"
-            >
-              Cart
-            </Link>
           </nav>
         </div>
       </header>
